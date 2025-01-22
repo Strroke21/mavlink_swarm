@@ -182,29 +182,6 @@ def send_velocity_setpoint(vehicle, vx, vy, vz):
         0, 0                        # yaw, yaw_rate (not used)
     )
 
-def angle_difference_with_heading(lat1, lon1, heading, lat2, lon2): # angle difference relative to origin lat, lon, heading and current lat, lon
-
-    # Convert latitude and longitude from degrees to radians
-    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
-
-    # Compute the difference in the longitudes
-    delta_lon = lon2 - lon1
-
-    # Calculate the bearing from the reference point to the second location
-    x = math.sin(delta_lon) * math.cos(lat2)
-    y = math.cos(lat1) * math.sin(lat2) - (math.sin(lat1) * math.cos(lat2) * math.cos(delta_lon))
-    bearing_to_point = math.atan2(x, y)
-
-    # Convert bearing from radians to degrees
-    bearing_to_point = math.degrees(bearing_to_point)
-
-    # Normalize the bearing to a value between 0 and 360 degrees
-    bearing_to_point = (bearing_to_point + 360) % 360
-
-    # Calculate the angle difference relative to the reference heading
-    angle_diff = (bearing_to_point - heading + 360) % 360
-
-    return angle_diff
 
 def distance_between(vehicle,leader_lat,leader_lon):
     
