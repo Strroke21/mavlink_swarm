@@ -216,7 +216,7 @@ def send_position_setpoint(vehicle, pos_x, pos_y, pos_z):
     )
 
 
-def geo_distance_components(vehicle, lat2, lon2):
+def geo_distance_components(vehicle, lat2, lon2, tolerance, kp):
     data = get_global_position(vehicle)
     if data is not None:
         lat1 = data[0]
@@ -245,8 +245,9 @@ def geo_distance_components(vehicle, lat2, lon2):
 
         print(f"x_dist_to_goal: {x:.2f}m, y_dist_to_goal: {y:.2f}m.")
         
-        if abs(x) > 2 and abs(y) > 2:
-            send_position_setpoint(follower1,x,y,0)
+        if abs(x) > tolerance or abs(y) > tolerance:
+            send_velocity_setpoint(follower1,x*kp,y*kp,0)
+            sleep(1)
 
     else:
         pass
@@ -273,9 +274,9 @@ def change_formation(angle,distance,form_alt,tar_alt,min_pwm,max_pwm):
         if pos_local is not None:
             print(pos_local)
             #fetch leader velocity in all direction in m/s
-            last_velocity[0] = pos_local['vx']
-            last_velocity[1] = pos_local['vy']
-            last_velocity[2] = pos_local['vz']
+            last_velocity[0] = pos['vx']/global_scale_factor
+            last_velocity[1] = pos['vy']/global_scale_factor
+            last_velocity[2] = pos['vz']/global_scale_factor
             #send_velocity_setpoint(follower1,last_velocity["vx"],last_velocity["vy"],0) #sending only vx and vy
             last_time_update = time()
             print(f"new leader vx: {last_velocity[0]} m/s new leader vy: {last_velocity[1]} m/s new leader vz: {last_velocity[2]} m/s Update Time: {last_time_update}")
@@ -303,7 +304,7 @@ def change_formation(angle,distance,form_alt,tar_alt,min_pwm,max_pwm):
             print("Changing Formation...")
             break
                 
-        geo_distance_components(follower1,form_lat,form_lon)
+        geo_distance_components(follower1,form_lat,form_lon, tolerance=2, kp=0.5)
         send_velocity_setpoint(follower1,last_velocity[0],last_velocity[1],0) #sending only vx and vy
         counter += 1
         ct = time()
@@ -358,54 +359,60 @@ def enable_data_stream(vehicle,stream_rate):
     mavutil.mavlink.MAV_DATA_STREAM_ALL,
     stream_rate,1)
 
-master = connect(master_addr) #stream rate set by comm
-print("Master Connected...")
-enable_data_stream(master,stream_rate=100) #stream already enabled by master script
+def main():
 
-arming_check()
-#---------- follower connection ---------
-follower1 = connect(fcu_addr)#('tcp:127.0.0.1:5763')
-print("follower1 connected.")
-enable_data_stream(follower1,stream_rate=100)
-#----------guided mode ----------
-VehicleMode(follower1,"GUIDED")
-print("follower1 in GUIDED mode")
-sleep(1)
+    while True:
 
-#------- arm --------
-arm(follower1)
-print("arming the follower1")
-sleep(1)
-#---------- guided takeoff -----------
-drone_takeoff(follower1,form_alt)
-print("taking off follower1")
-#target_alt_check()
-sleep(10)
-#-------------- arming and takeoff checkpoint 
-#------------------- main ------------------
-while True:
+        rc_chan = master_data(master,"RC_CHANNELS")
 
-    rc_chan = master_data(master,"RC_CHANNELS")
+        if rc_chan is not None:
 
-    if rc_chan is not None:
-
-        print(rc_chan)
-        if (f1_min_pwm < int(rc_chan['chan11_raw']) < f1_max_pwm):
-            change_formation(f1_angle,f1_distance,form_alt,tar_alt,f1_min_pwm,f1_max_pwm)
+            print(rc_chan)
+            if (f1_min_pwm < int(rc_chan['chan11_raw']) < f1_max_pwm):
+                change_formation(f1_angle,f1_distance,form_alt,tar_alt,f1_min_pwm,f1_max_pwm)
 
 
-        elif (f2_min_pwm < int(rc_chan['chan11_raw']) < f2_max_pwm):
-            change_formation(f2_angle,f2_distance,form_alt,tar_alt,f2_min_pwm,f2_max_pwm)
+            elif (f2_min_pwm < int(rc_chan['chan11_raw']) < f2_max_pwm):
+                change_formation(f2_angle,f2_distance,form_alt,tar_alt,f2_min_pwm,f2_max_pwm)
 
 
-        elif (f3_min_pwm < int(rc_chan['chan11_raw']) < f3_max_pwm):
-            change_formation(f3_angle,f3_distance,form_alt,tar_alt,f3_min_pwm,f3_max_pwm)
+            elif (f3_min_pwm < int(rc_chan['chan11_raw']) < f3_max_pwm):
+                change_formation(f3_angle,f3_distance,form_alt,tar_alt,f3_min_pwm,f3_max_pwm)
+
+            else:
+                print("Waiting for Master Controller Input...")
 
         else:
-            print("Waiting for Master Controller Input...")
+            print("No Data")
 
-    else:
-        print("No Data")
+
+#------------------- main ------------------
+if __name__=="__main__":
+    master = connect(master_addr) #stream rate set by comm
+    print("Master Connected...")
+    enable_data_stream(master,stream_rate=100) #stream already enabled by master script
+#-------------- arming and takeoff checkpoint 
+    arming_check()
+    #---------- follower connection ---------
+    follower1 = connect(fcu_addr)#('tcp:127.0.0.1:5763')
+    print("follower1 connected.")
+    enable_data_stream(follower1,stream_rate=100)
+    #----------guided mode ----------
+    VehicleMode(follower1,"GUIDED")
+    print("follower1 in GUIDED mode")
+    sleep(1)
+
+    #------- arm --------
+    arm(follower1)
+    print("arming the follower1")
+    sleep(1)
+    #---------- guided takeoff -----------
+    drone_takeoff(follower1,form_alt)
+    print("taking off follower1")
+    target_alt_check()
+    #sleep(10)
+    main()
+
 
 
 
