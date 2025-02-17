@@ -130,9 +130,9 @@ def formation(angle,distance,form_alt):
         current_pos = master_data(master,"GLOBAL_POSITION_INT")
         if current_pos:
             counter+=1
-            lat_lead = current_pos['lat']/global_scale_factor
-            lon_lead = current_pos['lon']/global_scale_factor
-            lead_yaw = (current_pos['hdg'])/local_scale_factor
+            lat_lead = current_pos.lat/global_scale_factor
+            lon_lead = current_pos.lon/global_scale_factor
+            lead_yaw = (current_pos.hdg)/local_scale_factor
             print(f"Leader Heading: {lead_yaw} deg.")
             ######### follower1 ######
             yaw1 = angle #on the right
@@ -274,9 +274,9 @@ def change_formation(angle,distance,form_alt,tar_alt,min_pwm,max_pwm):
         if pos_local is not None:
             print(pos_local)
             #fetch leader velocity in all direction in m/s
-            last_velocity[0] = pos['vx']/global_scale_factor
-            last_velocity[1] = pos['vy']/global_scale_factor
-            last_velocity[2] = pos['vz']/global_scale_factor
+            last_velocity[0] = pos.vx/global_scale_factor
+            last_velocity[1] = pos.vy/global_scale_factor
+            last_velocity[2] = pos.vz/global_scale_factor
             #send_velocity_setpoint(follower1,last_velocity["vx"],last_velocity["vy"],0) #sending only vx and vy
             last_time_update = time()
             print(f"new leader vx: {last_velocity[0]} m/s new leader vy: {last_velocity[1]} m/s new leader vz: {last_velocity[2]} m/s Update Time: {last_time_update}")
@@ -288,19 +288,19 @@ def change_formation(angle,distance,form_alt,tar_alt,min_pwm,max_pwm):
 
         if pos is not None:
 
-            last_global_pos[0] = pos['lat']/global_scale_factor
-            last_global_pos[1] = pos['lon']/global_scale_factor
-            last_global_pos[2] = pos['hdg']/local_scale_factor
+            last_global_pos[0] = pos.lat/global_scale_factor
+            last_global_pos[1] = pos.lon/global_scale_factor
+            last_global_pos[2] = pos.hdg/local_scale_factor
             form_lat, form_lon = relative_pos(last_global_pos[0],last_global_pos[1],distance,last_global_pos[2], angle)
 
-        if rc_chan is not None and int(rc_chan['chan6_raw'] > rtl_pwm):
+        if rc_chan is not None and int(rc_chan.chan6_raw > rtl_pwm):
             VehicleMode(follower1, "RTL")
             print("Vehicle in RTL mode...")
             print("Returning to home...")
             sleep(1)
             exit() #subprocess.call([sudo,reboot])
  
-        if rc_chan is not None and (min_pwm > int(rc_chan['chan11_raw'])) or (int(rc_chan['chan11_raw'])>max_pwm):
+        if rc_chan is not None and (min_pwm > int(rc_chan.chan11_raw)) or (int(rc_chan.chan11_raw)>max_pwm):
             print("Changing Formation...")
             break
                 
@@ -320,7 +320,7 @@ def arming_check():
         data = master_data(master,"DISTANCE_SENSOR")
         print(data)
         if data:
-            alt = data['current_distance']/local_scale_factor #rangefinder altitude (m.)
+            alt = data.current_distance/local_scale_factor #rangefinder altitude (m.)
             if alt >= master_height:
                 break
 
@@ -346,8 +346,7 @@ def master_data(master,msg_type):
     msg = master.recv_match(type=msg_type, blocking=False, timeout=0.1)
 
     if msg:
-        data = msg.to_dict()
-        return data
+        return msg
     
 
 def enable_data_stream(vehicle,stream_rate):
@@ -368,15 +367,15 @@ def main():
         if rc_chan is not None:
 
             print(rc_chan)
-            if (f1_min_pwm < int(rc_chan['chan11_raw']) < f1_max_pwm):
+            if (f1_min_pwm < int(rc_chan.chan11_raw) < f1_max_pwm):
                 change_formation(f1_angle,f1_distance,form_alt,tar_alt,f1_min_pwm,f1_max_pwm)
 
 
-            elif (f2_min_pwm < int(rc_chan['chan11_raw']) < f2_max_pwm):
+            elif (f2_min_pwm < int(rc_chan.chan11_raw) < f2_max_pwm):
                 change_formation(f2_angle,f2_distance,form_alt,tar_alt,f2_min_pwm,f2_max_pwm)
 
 
-            elif (f3_min_pwm < int(rc_chan['chan11_raw']) < f3_max_pwm):
+            elif (f3_min_pwm < int(rc_chan.chan11_raw) < f3_max_pwm):
                 change_formation(f3_angle,f3_distance,form_alt,tar_alt,f3_min_pwm,f3_max_pwm)
 
             else:
