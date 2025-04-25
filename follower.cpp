@@ -383,10 +383,11 @@ double distance_to_home(System& system, Telemetry& telemetry) {
 int main() {
 
     std::string rfd_address = "/dev/ttyUSB0"; // RFD900x serial port address
+    std::string fcu_address = "udp://:14550"; // FCU address
     Mavsdk::Configuration config{ComponentType::GroundStation};
     Mavsdk mavsdk(config);
 
-    ConnectionResult connection_result = mavsdk.add_any_connection("udp://:14550");
+    ConnectionResult connection_result = mavsdk.add_any_connection(fcu_address);
 
     if (connection_result != ConnectionResult::Success) {
         std::cerr << "Connection failed: " << connection_result << std::endl;
@@ -430,9 +431,7 @@ int main() {
         // telemetry.subscribe_flight_mode([](Telemetry::FlightMode flight_mode) {
         //     std::cout << "Flight mode: " << flight_mode << std::endl;
         // });
-
-        //std::atomic<bool> target_reached{false};
-        //Telemetry::Position position = telemetry.position();
+        
         std::vector<double> leader_pos = get_rfd900x_data(rfd_address);
         //leader data list: [leader_lat,leader_lon,leader_yaw,leader_vx,leader_vy,leader_vz,rng_distance]
         auto [lat, lon] = get_global_position(*system, telemetry);
