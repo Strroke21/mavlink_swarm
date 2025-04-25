@@ -433,6 +433,8 @@ int main() {
 
         //std::atomic<bool> target_reached{false};
         //Telemetry::Position position = telemetry.position();
+        std::vector<double> leader_pos = get_rfd900x_data(rfd_address);
+        //leader data list: [leader_lat,leader_lon,leader_yaw,leader_vx,leader_vy,leader_vz]
         auto [lat, lon] = get_global_position(*system, telemetry);
         std::cout << std::fixed << std::setprecision(7);
         std::cout << "Global position: " "Current Lat:" << lat << " " << "Current Lon: "<<lon << std::endl;
@@ -449,15 +451,11 @@ int main() {
                 return 1;
             }
             std::cout << "Takeoff successful." << std::endl;
-            std::vector<double> leader_pos = get_rfd900x_data(rfd_address);
             auto [form_lat,form_lon] = relative_pos(leader_pos[0], leader_pos[1], dist_to_leader, leader_pos[2], angle_to_leader);
             formation(*system, angle_to_leader, dist_to_leader, form_alt, form_lat, form_lon, leader_pos[2]);
-            //set_velocity(*system, 10.0f, 0.0f, 0.0f); // Stop the drone
             std::chrono::seconds(1);
         
         }
-
-        std::vector<double> leader_pos = get_rfd900x_data(rfd_address);
         set_velocity(*system, leader_pos[3], leader_pos[4], 0.0f); 
         auto [form_lat,form_lon] = relative_pos(leader_pos[0], leader_pos[1], dist_to_leader, leader_pos[2], angle_to_leader);
         geo_distance_components(*system, lat, lon, form_lat, form_lon, pos_tolerence, kp, leader_pos[3], leader_pos[4]);
@@ -469,4 +467,4 @@ int main() {
     }
 }
 
-//g++ data_test.cpp -lmavsdk -lpthread -o data_test (compile command)
+//g++ follower.cpp -lmavsdk -lpthread -o follower (compile command)
