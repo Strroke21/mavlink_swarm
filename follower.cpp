@@ -434,7 +434,7 @@ int main() {
         //std::atomic<bool> target_reached{false};
         //Telemetry::Position position = telemetry.position();
         std::vector<double> leader_pos = get_rfd900x_data(rfd_address);
-        //leader data list: [leader_lat,leader_lon,leader_yaw,leader_vx,leader_vy,leader_vz]
+        //leader data list: [leader_lat,leader_lon,leader_yaw,leader_vx,leader_vy,leader_vz,rng_distance]
         auto [lat, lon] = get_global_position(*system, telemetry);
         std::cout << std::fixed << std::setprecision(7);
         std::cout << "Global position: " "Current Lat:" << lat << " " << "Current Lon: "<<lon << std::endl;
@@ -447,7 +447,7 @@ int main() {
             set_flight_mode(*system, MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, 4);
             std::cout << "Flight mode set to GUIDED." << std::endl;
             //arm and takeoff
-            if (!takeoff(*system,10.0f)) {
+            if (!takeoff(*system,form_alt)) {
                 return 1;
             }
             std::cout << "Takeoff successful." << std::endl;
@@ -459,7 +459,6 @@ int main() {
         set_velocity(*system, leader_pos[3], leader_pos[4], 0.0f); 
         auto [form_lat,form_lon] = relative_pos(leader_pos[0], leader_pos[1], dist_to_leader, leader_pos[2], angle_to_leader);
         geo_distance_components(*system, lat, lon, form_lat, form_lon, pos_tolerence, kp, leader_pos[3], leader_pos[4]);
-        
 
         //     std::cout << "Mission complete. Returning to home." << std::endl;
         //     set_flight_mode(*system, MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, 6);
