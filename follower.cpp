@@ -16,6 +16,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <cstring>
+#include <map>
 
 using namespace mavsdk;
 
@@ -27,6 +28,9 @@ float target_alt = 20.0; // Target altitude in meters
 float pos_tolerence = 2.0; // Position tolerence in meters
 float kp = 1.5; // Proportional gain for position control
 float form_alt = 10.0; // Formation altitude in meters
+float arm_alt = 1.0;
+std::map<std::string, int> modes={{"STABILIZE",0}, {"ACRO",1}, {"ALT_HOLD",2}, {"AUTO",3}, {"GUIDED",4}, {"LOITER",5},{"RTL",6}, {"CIRCLE",7},{"",8}, {"LAND",9}};
+//"STABILIZE", "ACRO", "ALT_HOLD", "AUTO", "GUIDED", "LOITER", "RTL", "CIRCLE","","LAND"
 
 
 std::vector<double> get_rfd900x_data(const std::string& serial_port) {
@@ -431,7 +435,7 @@ int main() {
         // telemetry.subscribe_flight_mode([](Telemetry::FlightMode flight_mode) {
         //     std::cout << "Flight mode: " << flight_mode << std::endl;
         // });
-        
+
         std::vector<double> leader_pos = get_rfd900x_data(rfd_address);
         //leader data list: [leader_lat,leader_lon,leader_yaw,leader_vx,leader_vy,leader_vz,rng_distance]
         auto [lat, lon] = get_global_position(*system, telemetry);
@@ -439,22 +443,28 @@ int main() {
         std::cout << "Global position: " "Current Lat:" << lat << " " << "Current Lon: "<<lon << std::endl;
         double dist_to_home = distance_to_home(*system, telemetry);
         std::cout << "Distance to home: " << dist_to_home << " meters." << std::endl;
-        counter++;
-
-        if (counter == 1) {
-            // Set the flight mode to GUIDED
-            set_flight_mode(*system, MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, 4);
-            std::cout << "Flight mode set to GUIDED." << std::endl;
-            //arm and takeoff
-            if (!takeoff(*system,form_alt)) {
-                return 1;
-            }
-            std::cout << "Takeoff successful." << std::endl;
-            auto [form_lat,form_lon] = relative_pos(leader_pos[0], leader_pos[1], dist_to_leader, leader_pos[2], angle_to_leader);
-            formation(*system, angle_to_leader, dist_to_leader, form_alt, form_lat, form_lon, leader_pos[2]);
-            std::chrono::seconds(1);
+        float leader_altitude = leader_pos[6]/100;
         
-        }
+        if (leader_altitude>arm_alt){
+
+            counter++;
+
+            if (counter == 1) {
+                // Set the flight mode to GUIDED
+                set_flight_mode(*system, MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, modes["GUIDED"]);
+                std::cout << "Flight mode set to GUIDED." << std::endl;
+
+                //arm and takeoff
+                if (!takeoff(*system,form_alt)) {
+                    return 1;
+                }
+                std::cout << "Takeoff successful." << std::endl;
+                auto [form_lat,form_lon] = relative_pos(leader_pos[0], leader_pos[1], dist_to_leader, leader_pos[2], angle_to_leader);
+                formation(*system, angle_to_leader, dist_to_leader, form_alt, form_lat, form_lon, leader_pos[2]);
+                std::chrono::seconds(1);
+            
+            }
+        }    
         set_velocity(*system, leader_pos[3], leader_pos[4], 0.0f); 
         auto [form_lat,form_lon] = relative_pos(leader_pos[0], leader_pos[1], dist_to_leader, leader_pos[2], angle_to_leader);
         geo_distance_components(*system, lat, lon, form_lat, form_lon, pos_tolerence, kp, leader_pos[3], leader_pos[4]);
