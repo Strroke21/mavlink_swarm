@@ -33,6 +33,7 @@ std::map<std::string, int> modes={{"STABILIZE",0}, {"ACRO",1}, {"ALT_HOLD",2}, {
 //"STABILIZE", "ACRO", "ALT_HOLD", "AUTO", "GUIDED", "LOITER", "RTL", "CIRCLE","","LAND"
 
 
+//data stream from leader
 std::vector<double> get_rfd900x_data(const std::string& serial_port) {
     std::vector<double> leader_data;
     int fd = open(serial_port.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
@@ -99,7 +100,7 @@ std::vector<double> get_rfd900x_data(const std::string& serial_port) {
     return leader_data;
 }
 
-
+//2d distance calculation
 double distance_between(double current_lat, double current_lon, double leader_lat, double leader_lon) {
     // Convert degrees to radians
     const double R = 6378137.0;  // Earth radius in meters
@@ -117,6 +118,8 @@ double distance_between(double current_lat, double current_lon, double leader_la
 
     return distance;
 }
+
+//goto waypoint function
 
 bool goto_waypoint(System& system, float target_lat, float target_lon, float target_alt)
 {
@@ -153,6 +156,7 @@ bool goto_waypoint(System& system, float target_lat, float target_lon, float tar
     std::cout << "Goto command sent to reach target waypoint." << std::endl;
 
     bool target_reached = false;
+    const float tolerance = 2.0f; // meters
 
     while (!target_reached) {
         Telemetry::Position position = telemetry.position();
@@ -163,7 +167,7 @@ bool goto_waypoint(System& system, float target_lat, float target_lon, float tar
         double dist = distance_between(current_lat, current_lon, target_lat, target_lon);
         std::cout << "Distance to target: " << dist << " meters." << std::endl;
 
-        if (dist <= 2.0) {
+        if (dist <= tolerance) {
             std::cout << "Target reached!" << std::endl;
             target_reached = true;
         }
@@ -175,7 +179,7 @@ bool goto_waypoint(System& system, float target_lat, float target_lon, float tar
 
 }
 
-
+//set velocity function
 void set_velocity(System& system, float vx, float vy, float vz) {
     MavlinkPassthrough mavlink_passthrough{system};
 
@@ -198,6 +202,8 @@ void set_velocity(System& system, float vx, float vy, float vz) {
 
     mavlink_passthrough.send_message(msg);
 }
+
+//calculate relative position
 
 std::pair<float, float> relative_pos(double lat, double lon, double distance, double heading, double follower_heading) {
     const double EARTH_RADIUS = 6378137.0; // Earth's radius in meters
@@ -223,7 +229,7 @@ std::pair<float, float> relative_pos(double lat, double lon, double distance, do
     return std::make_pair(new_lat, new_lon);
 }
 
-
+//formation function
 bool formation(System& system, double angle_to_leader, double dist_to_leader, double form_alt, double leader_lat, double leader_lon, double leader_yaw){
 
     int form_counter = 0;
@@ -241,6 +247,8 @@ bool formation(System& system, double angle_to_leader, double dist_to_leader, do
 
 }
 
+//get global position
+
 std::pair<double, double> get_global_position(System& system, Telemetry& telemetry) {
     // Get current position (non-blocking snapshot)
     Telemetry::Position position = telemetry.position();
@@ -250,6 +258,7 @@ std::pair<double, double> get_global_position(System& system, Telemetry& telemet
     return std::make_pair(current_lat, current_lon);
 }
 
+//get current heading
 float current_heading(System& system, Telemetry& telemetry){
     // Get current heading (non-blocking snapshot)
     Telemetry::EulerAngle euler_angle = telemetry.attitude_euler();
@@ -260,6 +269,8 @@ float current_heading(System& system, Telemetry& telemetry){
     }
 
 }
+
+//takeoff function
 
 bool takeoff(System& system, float takeoff_altitude_m) {
     Action action(system);
@@ -275,7 +286,7 @@ bool takeoff(System& system, float takeoff_altitude_m) {
     // Wait for system to be ready
     while (!telemetry.health_all_ok()) {
         std::cout << "Waiting for system to be ready..." << std::endl;
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds(2));
     }
 
     // Arm the drone
@@ -300,6 +311,7 @@ bool takeoff(System& system, float takeoff_altitude_m) {
     
 }
 
+//calculate error in x,y for formation
 void geo_distance_components(System& system, double current_lat, double current_lon, double target_lat, double target_lon, float tolerence, float kp, float lead_vx, float lead_vy ){
     
     const float R = 6378137.0;  // Earth radius in meters
@@ -332,6 +344,8 @@ void geo_distance_components(System& system, double current_lat, double current_
 
 }
 
+//set flight mode function
+
 bool set_flight_mode(System& system, uint8_t base_mode, uint8_t custom_mode) {
     MavlinkPassthrough mavlink_passthrough(system);
 
@@ -348,6 +362,7 @@ bool set_flight_mode(System& system, uint8_t base_mode, uint8_t custom_mode) {
     return mavlink_passthrough.send_message(msg) == MavlinkPassthrough::Result::Success;
 }
 
+//data stream function
 bool enable_data_stream(System& system, uint8_t stream_id, uint16_t rate) {
     MavlinkPassthrough mavlink_passthrough(system);
 
@@ -365,6 +380,8 @@ bool enable_data_stream(System& system, uint8_t stream_id, uint16_t rate) {
 
     return mavlink_passthrough.send_message(msg) == MavlinkPassthrough::Result::Success;
 }
+
+//calculate distance to home
 
 double distance_to_home(System& system, Telemetry& telemetry) {
     // Get current position (non-blocking snapshot)
