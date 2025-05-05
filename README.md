@@ -80,3 +80,38 @@ Open another terminal and start a listener node:
 ```bash
 source /opt/ros/humble/setup.bash
 ros2 run demo_nodes_py listener
+
+### **6. Launch SITL for Arducopter** 
+
+```bash
+sim_vehicle.py -I1 --model JSON #run each instance in differt terminal
+sim_vehicle.py -I2 --model JSON
+sim_vehicle.py -I3 --model JSON
+sim_vehicle.py -I4 --model JSON
+
+```
+
+### **7 Launch Gazebo**
+
+```bash
+
+gz sim -r -v4 swarm.sdf
+
+```
+
+### **7. Run leader node**
+
+```bash
+
+python3 sim_leader.py
+
+```
+
+### **8. Run follower node**
+```bash
+
+python3 sim_follower1.py
+python3 sim_follower2.py
+python3 sim_follower3.py
+
+```
