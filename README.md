@@ -81,6 +81,8 @@ Open another terminal and start a listener node:
 source /opt/ros/humble/setup.bash
 ros2 run demo_nodes_py listener
 
+```
+
 ### **6. Launch SITL for Arducopter** 
 
 ```bash
