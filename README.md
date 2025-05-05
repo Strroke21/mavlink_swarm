@@ -112,7 +112,7 @@ python3 sim_leader.py
 ### **8. Run follower node**
 ```bash
 
-python3 sim_follower1.py
+python3 sim_follower1.py #run each instance in differt terminal
 python3 sim_follower2.py
 python3 sim_follower3.py
 
